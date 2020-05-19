@@ -21,3 +21,6 @@ Create a cv_dataset file with two sub-files (training and testing), and put your
 ![](https://github.com/kun0304/CV-IGRT/blob/master/structure/tree.jpg)
 
 The CSV file is the center coordinates of the selected control volumes.
+
+## Questions
+Please contact 'xk.liang@qq.com'
