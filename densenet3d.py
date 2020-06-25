@@ -75,7 +75,6 @@ class DenseNet3D(nn.Module):
 
         self.bn1 = nn.BatchNorm3d(nChannels)
         self.fc = nn.Linear(184, nClasses)
-        self.tanh = nn.Tanh()
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
@@ -107,6 +106,4 @@ class DenseNet3D(nn.Module):
         out = torch.squeeze(F.avg_pool3d(F.relu(self.bn1(out)), 8))
         out = out.reshape(x.size(0), -1)
         out = self.fc(out)
-        out = self.tanh(out)
-        out = torch.mul(torch.tensor([10.0, 10.0, 10.0, 3.0, 3.0, 3.0]).repeat([out.shape[0], 1]).cuda(), out)
         return out
