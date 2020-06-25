@@ -18,7 +18,6 @@ SimpleITK 1.2.2
 ## Prepare data
 Create a cv_dataset file with two sub-files (training and testing), and put your own data into these two files. The data folder is organized in the following way:
 
-![](https://github.com/kun0304/CV-IGRT/blob/master/structure/tree.jpg)
 
 The CSV file is the center coordinates of the selected control volumes.
 
