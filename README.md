@@ -11,9 +11,7 @@ Windows 10, python 3.7, NVIDIA GPU ( >= 12GB)
 
 ## Dependencies
 The project depends on following libraries:
-PyTorch 1.3.0
-NumPy 1.17.1
-SimpleITK 1.2.2
+PyTorch 1.3.0  NumPy 1.17.1  SimpleITK 1.2.2
 
 ## Prepare data
 Create a cv_dataset file with two sub-files (training and testing), and put your own data into these two files. The data folder is organized in the following way:
