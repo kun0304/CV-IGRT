@@ -7,7 +7,7 @@ The code was written by Xiaokun Liang.
 Patient Positioning in CT-Guided Radiation Therapy
 
 ## Prerequisites
-Windows 10, python 3.7, NVIDIA GPU ( >= 6GB)
+Windows 10, python 3.7, NVIDIA GPU ( >= 12GB)
 
 ## Dependencies
 The project depends on following libraries:
