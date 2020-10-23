@@ -16,13 +16,17 @@ def test_main():
     # set the specific GPU
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu_index
     # load the pretrained model
-    model = DenseNet3D(growthRate=4, depth=25, reduction=0.5, nClasses=6, bottleneck=True).cuda()
+    model = DenseNet3D(growthRate=4, depth=25, reduction=0.5, nClasses=6, bottleneck=True)
+    if torch.cuda.is_available():
+        model = model.cuda()
     model_name = sorted(glob.glob(model_dir + '/model*.pth'))
     model_name = model_name[len(model_name) - 1]
     model.load_state_dict(torch.load(model_name))
 
-    transform = SpatialTransform().cuda()
-    patient_dir = glob.glob(training_data_path + '/testing/*')
+    transform = SpatialTransform()
+    if torch.cuda.is_available():
+        transform = transform.cuda()
+    patient_dir = glob.glob(testing_data_path + '/*')
 
     for xi in range(0, len(patient_dir)):
         result_dir = patient_dir[xi] + '/result'
@@ -54,7 +58,9 @@ def test_main():
                 prediction_temp = prediction_temp.cpu().detach().numpy()
                 cv_pred[i_cv, :] = prediction_temp
 
-            average_pred = torch.from_numpy(np.reshape(np.mean(cv_pred, 0), (1, 6))).cuda().float()
+            average_pred = torch.from_numpy(np.reshape(np.mean(cv_pred, 0), (1, 6))).float()
+            if torch.cuda.is_available():
+                average_pred = average_pred.cuda()
             # trans_dct = np.squeeze(transform(dct, average_pred, affine_matrix).cpu().detach().numpy())
 
             # save the result

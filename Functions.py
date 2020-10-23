@@ -18,6 +18,7 @@ def load_pretrain_model(model_dir, lr, model, num_iter, learning_rate_decay_time
     curr_lr = lr
     model_name = sorted(glob.glob(model_dir + '/model*.pth'))
     loss_curve_name = sorted(glob.glob(model_dir + '/training_loss_totalIter_*.npy'))
+    val_loss_curve_name = sorted(glob.glob(model_dir + '/val_loss_totalIter_*.npy'))
     try:
         model_name = model_name[len(model_name) - 1]
         model.load_state_dict(torch.load(model_name))
@@ -28,12 +29,14 @@ def load_pretrain_model(model_dir, lr, model, num_iter, learning_rate_decay_time
                 curr_lr = decay_rate * curr_lr
                 update_lr(optimizer, curr_lr)
         lossall = np.load(loss_curve_name[0])
+        val_lossall = np.load(val_loss_curve_name[0])
     except:
         print('no pretrained model!')
         current_iter = 0
         lossall = np.zeros((3, num_iter))
+        val_lossall = np.zeros((3, num_iter))
         optimizer = torch.optim.Adam(model.parameters(), lr=curr_lr)
-    return current_iter, curr_lr, optimizer, model,lossall
+    return current_iter, curr_lr, optimizer, model,lossall,val_lossall
 
 
 def load_cv_center(csv_names):
@@ -47,7 +50,9 @@ def load_cv_center(csv_names):
 
 
 def extract_moved_cv(moved, cv_cord_ini, control_volume_size):
-    moved_cv = torch.zeros((moved.shape[0],) + (1,) + control_volume_size).cuda().float()
+    moved_cv = torch.zeros((moved.shape[0],) + (1,) + control_volume_size).float()
+    if torch.cuda.is_available():
+        moved_cv = moved_cv.cuda()
     for batch_index in range(0, moved.shape[0]):
         x_ini = int(cv_cord_ini[batch_index][0])
         y_ini = int(cv_cord_ini[batch_index][1])
@@ -60,7 +65,7 @@ def extract_moved_cv(moved, cv_cord_ini, control_volume_size):
 
 def data_load_cv_project(data_path):
     ct_sum = []
-    patient_id_name = glob.glob(data_path + '/training/*N*')
+    patient_id_name = glob.glob(data_path + '/H*')
     for patient_ID_index in range(0, len(patient_id_name)):
         start1 = timeit.default_timer()
         ct_sum.append([])
@@ -118,15 +123,15 @@ def extract_data_training(ct_dataset, batch_size, control_volume_size):
                    z_ini:z_ini + control_volume_size[2]]
         cv_cord_ini[batch_index, :] = [x_ini, y_ini, z_ini]
 
-    dct = np.reshape(dct, (dct.shape[0],) + (1,) + dct.shape[1:4])
-    pct = np.reshape(pct, (pct.shape[0],) + (1,) + pct.shape[1:4])
-    pct_cv = np.reshape(pct_cv, (pct_cv.shape[0],) + (1,) + pct_cv.shape[1:4])
-    pct_cv_annotate = np.reshape(pct_cv_annotate, (pct_cv_annotate.shape[0],) + (1,) + pct_cv_annotate.shape[1:4])
-
-    dct = torch.from_numpy(dct).cuda().float()
-    pct = torch.from_numpy(pct).cuda().float()
-    pct_cv = torch.from_numpy(pct_cv).cuda().float()
-    pct_cv_annotate = torch.from_numpy(pct_cv_annotate).cuda().float()
+    dct = torch.from_numpy(np.reshape(dct, (dct.shape[0],) + (1,) + dct.shape[1:4])).float()
+    pct = torch.from_numpy(np.reshape(pct, (pct.shape[0],) + (1,) + pct.shape[1:4])).float()
+    pct_cv = torch.from_numpy(np.reshape(pct_cv, (pct_cv.shape[0],) + (1,) + pct_cv.shape[1:4])).float()
+    pct_cv_annotate = torch.from_numpy(np.reshape(pct_cv_annotate, (pct_cv_annotate.shape[0],) + (1,) + pct_cv_annotate.shape[1:4])).float()
+    if torch.cuda.is_available():
+        dct = dct.cuda()
+        pct = pct.cuda()
+        pct_cv = pct_cv.cuda()
+        pct_cv_annotate = pct_cv_annotate.cuda().float()
     return dct, pct, pct_cv_annotate, pct_cv, cv_cord_ini
 
 
@@ -146,11 +151,15 @@ def extract_data_testing(pct_name, dct_name, control_volume_size, cv_center_arra
     z_ini:z_ini + control_volume_size[2]] = 10.0 * pct_cv_annotate[x_ini:x_ini + control_volume_size[0], y_ini:y_ini + control_volume_size[1],
                z_ini:z_ini + control_volume_size[2]]
 
-    dct = torch.from_numpy(np.reshape(dct, (1,) + (1,) + dct.shape)).cuda().float()
-    pct = torch.from_numpy(np.reshape(pct, (1,) + (1,) + pct.shape)).cuda().float()
-    pct_cv = torch.from_numpy(np.reshape(pct_cv, (1,) + (1,) + pct_cv.shape)).cuda().float()
-    pct_cv_annotate = torch.from_numpy(np.reshape(pct_cv_annotate, (1,) + (1,) + pct_cv_annotate.shape)).cuda().float()
-
+    dct = torch.from_numpy(np.reshape(dct, (1,) + (1,) + dct.shape)).float()
+    pct = torch.from_numpy(np.reshape(pct, (1,) + (1,) + pct.shape)).float()
+    pct_cv = torch.from_numpy(np.reshape(pct_cv, (1,) + (1,) + pct_cv.shape)).float()
+    pct_cv_annotate = torch.from_numpy(np.reshape(pct_cv_annotate, (1,) + (1,) + pct_cv_annotate.shape)).float()
+    if torch.cuda.is_available():
+        dct = dct.cuda()
+        pct = pct.cuda()
+        pct_cv = pct_cv.cuda()
+        pct_cv_annotate = pct_cv_annotate.cuda().float()
     pct_cv_binary = torch.zeros(pct.shape)
     pct_cv_binary[0, 0, x_ini:x_ini + control_volume_size[0], y_ini:y_ini + control_volume_size[1], z_ini:z_ini + control_volume_size[2]] = 1.0
     return dct, pct, pct_cv_annotate, pct_cv, pct_cv_binary
@@ -277,7 +286,9 @@ class SpatialTransform(nn.Module):
             R_zyx_temp[2, 3] = (2.0 / moving.shape[2]) * prediction[batch_index][2]
 
             theta[batch_index, :, :] = torch.mm(theta_temp[batch_index, :, :], R_zyx_temp)
-        theta = theta.cuda().float()
+        theta = theta.float()
+        if torch.cuda.is_available():
+            theta = theta.cuda()
         theta = torch.nn.functional.affine_grid(theta, moving.shape)
         theta = torch.nn.functional.grid_sample(moving, theta, mode='bilinear', padding_mode="border")
         # theta = torch.nn.functional.grid_sample(moving, theta, mode='bilinear')

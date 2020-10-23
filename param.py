@@ -7,13 +7,16 @@
 gpu_index = '0'
 
 # the dir of the data
-training_data_path = './cv_dataset'
+training_data_path = './cv_dataset/training'
+validation_data_path = './cv_dataset/validation'
+testing_data_path = './cv_dataset/testing'
 
 # the dir of the saved model
 model_dir = './model_Result'
 
 # number of the training iteration
-num_iter = 100000
+# num_iter = 100000
+num_iter = 10
 
 # the initial learning rate
 lr = 0.01
@@ -34,4 +37,5 @@ lambda_cv = 0.5
 control_volume_size = (30, 40, 40)
 
 # save the model per # iteration
-save_net_nIter = 50
+# save_net_nIter = 50
+save_net_nIter = 5

@@ -12,10 +12,6 @@ from Functions import imshow3Dslice,load_pretrain_model, SpatialTransform, extra
 from densenet3d import DenseNet3D
 
 
-# def count_parameters(model):
-#     return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-
 def train_main():
     if not os.path.isdir(model_dir):
         os.mkdir(model_dir)
@@ -24,15 +20,20 @@ def train_main():
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu_index
 
     # Formulate the network
-    model = DenseNet3D(growthRate=4, depth=25, reduction=0.5, nClasses=6, bottleneck=True).cuda()
-    # print(count_parameters(model))
+    model = DenseNet3D(growthRate=4, depth=25, reduction=0.5, nClasses=6, bottleneck=True)
+    if torch.cuda.is_available():
+        model = model.cuda()
+
     # Load the ct dataset
     ct_dataset, image_size = data_load_cv_project(training_data_path)
+    val_ct_dataset, image_size = data_load_cv_project(validation_data_path)
 
-    transform = SpatialTransform().cuda()
+    transform = SpatialTransform()
+    if torch.cuda.is_available():
+        transform = transform.cuda()
 
     # if there is a pretrained model, load it.
-    current_iter, curr_lr, optimizer, model, lossall = load_pretrain_model(model_dir, lr, model, num_iter, learning_rate_decay_times, decay_rate)
+    current_iter, curr_lr, optimizer, model, lossall, val_lossall = load_pretrain_model(model_dir, lr, model, num_iter, learning_rate_decay_times, decay_rate)
 
     # main training step
     for step in range(current_iter, num_iter):
@@ -62,8 +63,20 @@ def train_main():
         loss.backward()  # back propagation, compute gradients
         optimizer.step()  # apply gradients
 
+        # validation
+        with torch.no_grad():
+            val_dct, val_pct, val_pct_cv_annotate, val_pct_cv, val_cv_position = extract_data_training(val_ct_dataset, 1,
+                                                                                   control_volume_size)
+            val_prediction = model(val_dct, val_pct_cv_annotate)
+            val_trans_dct = transform(val_dct, val_prediction)
+            val_trans_dct_cv = extract_moved_cv(val_trans_dct, val_cv_position, control_volume_size)
+            val_global_loss = ncc_loss(val_trans_dct, val_pct)
+            val_cv_loss = ncc_loss(val_trans_dct_cv, val_pct_cv)
+            val_loss = val_global_loss + lambda_cv * val_cv_loss
+
         # show and save the training loss
         lossall[:, step] = np.array([loss.item(), global_loss.item(), cv_loss.item()])
+        val_lossall[:, step] = np.array([val_loss.item(), val_global_loss.item(), val_cv_loss.item()])
 
         # update the learning rate
         if (step + 1) % (int(num_iter/learning_rate_decay_times)) == 0:
@@ -74,6 +87,7 @@ def train_main():
 
         # save the loss value
         np.save(model_dir + '//training_loss_totalIter_' + str(num_iter) + '.npy', lossall)
+        np.save(model_dir + '//val_loss_totalIter_' + str(num_iter) + '.npy', val_lossall)
 
         # save the checkpoint model during training & displace the loss
         if (((step + 1) % save_net_nIter) == 0) or (step + 1 == num_iter):
