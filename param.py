@@ -15,8 +15,7 @@ testing_data_path = './cv_dataset/testing'
 model_dir = './model_Result'
 
 # number of the training iteration
-# num_iter = 100000
-num_iter = 10
+num_iter = 100000
 
 # the initial learning rate
 lr = 0.01
@@ -37,5 +36,4 @@ lambda_cv = 0.5
 control_volume_size = (30, 40, 40)
 
 # save the model per # iteration
-# save_net_nIter = 50
-save_net_nIter = 5
+save_net_nIter = 50
